@@ -1,4 +1,4 @@
-package lifestudy
+package biologist
 
 import (
 	"bytes"
