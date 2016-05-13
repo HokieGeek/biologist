@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-func uniqueId() []byte {
+func uniqueId() []byte { // {{{
 	h := sha1.New()
 	buf := make([]byte, sha1.Size)
 	binary.PutVarint(buf, time.Now().UnixNano())
 	h.Write(buf)
 	return h.Sum(nil)
-}
+} // }}}
 
-type ChangeType int
+type ChangeType int // {{{
 
 const (
 	Born ChangeType = iota
@@ -33,9 +33,9 @@ func (t ChangeType) String() string {
 	}
 
 	return "Unknown"
-}
+} // }}}
 
-type ChangedLocation struct {
+type ChangedLocation struct { // {{{
 	life.Location
 	Change ChangeType
 	// PatternGroup ...
@@ -50,9 +50,9 @@ func (t *ChangedLocation) String() string {
 	buf.WriteString(t.Location.String())
 	buf.WriteString("}")
 	return buf.String()
-}
+} // }}}
 
-type Analysis struct {
+type Analysis struct { // {{{
 	Status  life.Status
 	Living  []life.Location
 	Changes []ChangedLocation
@@ -78,7 +78,7 @@ func (t *Analysis) String() string {
 	buf.WriteString("\n\t}")
 	buf.WriteString("\n}")
 	return buf.String()
-}
+} // }}}
 
 // type (t *Analysis) Checksum() [sha1.Size]byte {
 // var str bytes.Buffer
@@ -90,7 +90,7 @@ func (t *Analysis) String() string {
 // return h.Sum(nil)
 // }
 
-type Analyzer struct {
+type Analyzer struct { // {{{
 	Id           []byte
 	Life         *life.Life
 	analyses     []Analysis // Each index is a generation
@@ -193,7 +193,7 @@ func (t *Analyzer) String() string {
 	buf.WriteString(t.Life.String())
 
 	return buf.String()
-}
+} // }}}
 
 func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Analyzer, error) {
 	// fmt.Printf("NewAnalyzer: %v\n", pattern(dims, Location{X: 0, Y: 0}))

@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-func TestUniqueId(t *testing.T) {
+func TestUniqueId(t *testing.T) { // {{{
 	id := uniqueId()
 	if id == nil {
 		t.Error("Unexpectedly got a nil unique id")
 	}
-}
+} // }}}
 
-func TestAnalyzerCreate(t *testing.T) {
+func TestAnalyzerCreate(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
 	analyzer, err := NewAnalyzer(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
@@ -31,9 +31,9 @@ func TestAnalyzerCreateError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Unexpectedly successful at creating analyzer with board of 0 size")
 	}
-}
+} // }}}
 
-func TestAnalyzerString(t *testing.T) {
+func TestAnalyzerString(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
 	analyzer, err := NewAnalyzer(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
@@ -43,9 +43,9 @@ func TestAnalyzerString(t *testing.T) {
 	if len(analyzer.String()) <= 0 {
 		t.Error("Analyzer String function returned empty string")
 	}
-}
+} // }}}
 
-func TestAnalyzerStart(t *testing.T) {
+func TestAnalyzerStart(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
 	analyzer, err := NewAnalyzer(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
@@ -60,9 +60,9 @@ func TestAnalyzerStart(t *testing.T) {
 	if analyzer.NumAnalyses() <= 0 {
 		t.Fatalf("No analyses found after %s of running\n", waitTime.String())
 	}
-}
+} // }}}
 
-func TestAnalyzerStop(t *testing.T) {
+func TestAnalyzerStop(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
 	analyzer, err := NewAnalyzer(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
@@ -82,9 +82,9 @@ func TestAnalyzerStop(t *testing.T) {
 	if stoppedCount != waitedCount {
 		t.Fatalf("Analyses increased after stopped. Expected %d and got %d\n", stoppedCount, waitedCount)
 	}
-}
+} // }}}
 
-func TestAnalyzerAnalysis(t *testing.T) {
+func TestAnalyzerAnalysis(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
 	analyzer, err := NewAnalyzer(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
@@ -124,6 +124,6 @@ func TestAnalyzerAnalysisError(t *testing.T) {
 	if analyzer.Analysis(analyzer.NumAnalyses()) != nil {
 		t.Fatal("Analyzer returned to me analysis at generation greater than the number of generations analyzed")
 	}
-}
+} // }}}
 
 // vim: set foldmethod=marker:
