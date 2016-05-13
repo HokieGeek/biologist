@@ -39,3 +39,5 @@ func NewManager() *Manager {
 	return m
 }
 */
+
+// vim: set foldmethod=marker:

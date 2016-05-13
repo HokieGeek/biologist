@@ -219,3 +219,5 @@ func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Locati
 
 	return a, nil
 }
+
+// vim: set foldmethod=marker:

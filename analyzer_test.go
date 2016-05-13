@@ -125,3 +125,5 @@ func TestAnalyzerAnalysisError(t *testing.T) {
 		t.Fatal("Analyzer returned to me analysis at generation greater than the number of generations analyzed")
 	}
 }
+
+// vim: set foldmethod=marker:
