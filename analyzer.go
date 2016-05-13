@@ -2,11 +2,20 @@ package biologist
 
 import (
 	"bytes"
-	// "crypto/sha1"
+	"crypto/sha1"
+	"encoding/binary"
 	"fmt"
-	// "strconv"
 	"github.com/hokiegeek/life"
+	"time"
 )
+
+func uniqueId() []byte {
+	h := sha1.New()
+	buf := make([]byte, sha1.Size)
+	binary.PutVarint(buf, time.Now().UnixNano())
+	h.Write(buf)
+	return h.Sum(nil)
+}
 
 type ChangeType int
 
@@ -27,7 +36,7 @@ func (t ChangeType) String() string {
 }
 
 type ChangedLocation struct {
-	Location
+	life.Location
 	Change ChangeType
 	// PatternGroup ...
 	// Classificaiton ...
@@ -44,8 +53,8 @@ func (t *ChangedLocation) String() string {
 }
 
 type Analysis struct {
-	Status  Status
-	Living  []Location
+	Status  life.Status
+	Living  []life.Location
 	Changes []ChangedLocation
 	// TODO: checksum []byte
 }
@@ -83,7 +92,7 @@ func (t *Analysis) String() string {
 
 type Analyzer struct {
 	Id           []byte
-	Life         *Life
+	Life         *life.Life
 	analyses     []Analysis // Each index is a generation
 	stopAnalysis func()
 }
@@ -96,14 +105,14 @@ func (t *Analyzer) Analysis(generation int) *Analysis {
 	return &t.analyses[generation]
 }
 
-func (t *Analyzer) analyze(cells []Location, generation int) {
+func (t *Analyzer) analyze(cells []life.Location, generation int) {
 	var analysis Analysis
 
 	// Record the status
 	// analysis.Status =
 
 	// Copy the living cells
-	analysis.Living = make([]Location, len(cells))
+	analysis.Living = make([]life.Location, len(cells))
 	copy(analysis.Living, cells)
 
 	// Initialize and start processing the living cells
@@ -186,17 +195,17 @@ func (t *Analyzer) String() string {
 	return buf.String()
 }
 
-func NewAnalyzer(dims Dimensions, pattern func(Dimensions, Location) []Location, rulesTester func(int, bool) bool) (*Analyzer, error) {
+func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Analyzer, error) {
 	// fmt.Printf("NewAnalyzer: %v\n", pattern(dims, Location{X: 0, Y: 0}))
 	a := new(Analyzer)
 
 	var err error
-	a.Life, err = New("HTTP REQUEST",
+	a.Life, err = life.New("HTTP REQUEST",
 		dims,
-		NEIGHBORS_ALL,
+		life.NEIGHBORS_ALL,
 		pattern,
 		rulesTester,
-		SimultaneousProcessor)
+		life.SimultaneousProcessor)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err)
 		return nil, err
