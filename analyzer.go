@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/hokiegeek/life"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -53,10 +56,10 @@ func (t *ChangedLocation) String() string {
 } // }}}
 
 type Analysis struct { // {{{
-	Status  life.Status
-	Living  []life.Location
-	Changes []ChangedLocation
-	// TODO: checksum []byte
+	Status   life.Status
+	Living   []life.Location
+	Changes  []ChangedLocation
+	checksum []byte
 }
 
 func (t *Analysis) String() string {
@@ -80,32 +83,125 @@ func (t *Analysis) String() string {
 	return buf.String()
 } // }}}
 
-// type (t *Analysis) Checksum() [sha1.Size]byte {
-// var str bytes.Buffer
-// str.WriteString(strconv.Itoa(t.Generations))
+type lifeStableCycle struct { // {{{
+	analyzer      *Analyzer
+	startIndex    int
+	cycleLength   int
+	cycleAnalyses []*Analysis
+}
 
-// h := sha1.New()
-// buf := make([]byte, sha1.Size)
-// h.Write(buf)
-// return h.Sum(nil)
-// }
+func (t *lifeStableCycle) createCycleAnalysis(cyclePos int) *Analysis {
+	analysis := t.analyzer.Analysis(cyclePos)
+
+	// Copy cycleAnalysis
+	cycleAnalysis := new(Analysis)
+	cycleAnalysis.Status = life.Stable
+
+	fmt.Println("~~ Copying Living ~~")
+	cycleAnalysis.Living = make([]life.Location, len(analysis.Living))
+	copy(cycleAnalysis.Living, analysis.Living)
+
+	fmt.Println("~~ Copying Changes ~~")
+	cycleAnalysis.Changes = make([]ChangedLocation, len(analysis.Changes))
+	copy(cycleAnalysis.Changes, analysis.Changes)
+
+	fmt.Println("~~ Copying checksum ~~")
+	cycleAnalysis.checksum = analysis.checksum
+
+	return cycleAnalysis
+}
+
+func (t *lifeStableCycle) Analysis(generation int) *Analysis {
+	fmt.Printf("Analysis(%d)\n", generation)
+	// cyclePos = gen_past_active_end % cycleLength
+	// gen_past_active_end = gen - active_len
+
+	cyclePos := (generation - t.analyzer.NumAnalyses()) % t.cycleLength
+
+	if t.cycleAnalyses[cyclePos] == nil {
+		t.cycleAnalyses[cyclePos] = t.createCycleAnalysis(cyclePos)
+	}
+
+	return t.cycleAnalyses[cyclePos]
+}
+
+func newLifeStableCycle(analyzer *Analyzer, startIndex int) (*lifeStableCycle, error) {
+	c := new(lifeStableCycle)
+
+	fmt.Printf(">> Found end cycle at: %d\n", startIndex)
+	c.analyzer = analyzer
+	c.startIndex = startIndex
+	c.cycleLength = c.analyzer.NumAnalyses() - c.startIndex
+	c.cycleAnalyses = make([]*Analysis, c.cycleLength)
+
+	return c, nil
+} // }}}
 
 type Analyzer struct { // {{{
-	Id           []byte
-	Life         *life.Life
-	analyses     []Analysis // Each index is a generation
-	stopAnalysis func()
+	Id                []byte
+	Life              *life.Life
+	analyses          []Analysis // Each index is a generation
+	analysesChecksums map[string]int
+	cycle             *lifeStableCycle
+	analyzing         bool
+	stopAnalysis      func()
 }
 
 func (t *Analyzer) Analysis(generation int) *Analysis {
-	if generation < 0 || generation >= len(t.analyses) {
-		// TODO: maybe an error
+	if generation < 0 {
 		return nil
+	}
+
+	if generation >= len(t.analyses) {
+		/*
+			if t.analyzing {
+				// TODO: return an error
+			} else {
+					fmt.Println("Returning cycle analysis")
+					return t.cycle.Analysis(generation)
+			}
+		*/
+		return nil // TODO: remove
 	}
 	return &t.analyses[generation]
 }
 
+func checksum(cells []life.Location) []byte {
+	/*
+		var str bytes.Buffer
+		fmt.Printf("checksum(")
+		for _, loc := range cells {
+			fmt.Printf(loc.String())
+			str.WriteString(strconv.Itoa(loc.X))
+			str.WriteString(strconv.Itoa(loc.Y))
+		}
+		fmt.Println()
+	*/
+
+	fmt.Printf("checksum(")
+	locations := make(map[int]int)
+	var sorted []int
+	for _, loc := range cells {
+		sorted = append(sorted, loc.X)
+		locations[loc.X] = loc.Y
+	}
+	sort.Ints(sorted)
+
+	var str bytes.Buffer
+	for _, x := range sorted {
+		fmt.Printf("%d,%d ", x, locations[x])
+		str.WriteString(strconv.Itoa(x))
+		str.WriteString(strconv.Itoa(locations[x]))
+	}
+	fmt.Println(")")
+
+	h := sha1.New()
+	h.Write([]byte(str.String()))
+	return h.Sum(nil)
+}
+
 func (t *Analyzer) analyze(cells []life.Location, generation int) {
+	fmt.Printf("analyze(..., %d)\n", generation)
 	var analysis Analysis
 
 	// Record the status
@@ -115,56 +211,77 @@ func (t *Analyzer) analyze(cells []life.Location, generation int) {
 	analysis.Living = make([]life.Location, len(cells))
 	copy(analysis.Living, cells)
 
-	// Initialize and start processing the living cells
-	analysis.Changes = make([]ChangedLocation, 0)
+	// Record the dead status, if applicable
+	if len(analysis.Living) <= 0 {
+		analysis.Status = life.Dead
+	}
 
-	if generation <= 0 { // Special case to reduce code duplication
-		for _, loc := range cells {
-			analysis.Changes = append(analysis.Changes, ChangedLocation{Location: loc, Change: Born})
-		}
+	analysis.checksum = checksum(analysis.Living)
+	checksumStr := hex.EncodeToString(analysis.checksum)
+	fmt.Printf("Analyzing: %s\n", checksumStr)
+	if gen, exists := t.analysesChecksums[checksumStr]; exists {
+		fmt.Printf(">>>> Found cycle start: %d\n", gen)
+		// t.cycle, _ = newLifeStableCycle(t, gen)
+		// t.Stop()
+		// fmt.Println(">>>> Stopped analysis")
 	} else {
-		// Add any new cells
-		previousLiving := t.analyses[generation-1].Living
-		for _, newCell := range cells {
-			found := false
-			for _, oldCell := range previousLiving {
-				if oldCell.Equals(&newCell) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				analysis.Changes = append(analysis.Changes, ChangedLocation{Location: newCell, Change: Born})
-			}
+		analysis.Status = life.Active
+		if t.analysesChecksums == nil {
+			t.analysesChecksums = make(map[string]int)
 		}
-
-		// Add any cells which died
-		for _, oldCell := range previousLiving {
-			found := false
-			for _, newCell := range cells {
-				if newCell.Equals(&oldCell) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				analysis.Changes = append(analysis.Changes, ChangedLocation{Location: oldCell, Change: Died})
-			}
-		}
-
+		t.analysesChecksums[checksumStr] = len(t.analyses)
 	}
 
 	t.analyses = append(t.analyses, analysis)
 }
+
+func (t *Analyzer) Changes(olderGeneration int, newerGeneration int) []ChangedLocation { // {{{
+	changes := make([]ChangedLocation, 0)
+
+	olderLiving := t.analyses[olderGeneration].Living
+	newerLiving := t.analyses[newerGeneration].Living
+
+	// Add any new cells
+	for _, newCell := range newerLiving {
+		found := false
+		for _, oldCell := range olderLiving {
+			if oldCell.Equals(&newCell) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			changes = append(changes, ChangedLocation{Location: newCell, Change: Born})
+		}
+	}
+
+	// Add any cells which died
+	for _, oldCell := range olderLiving {
+		found := false
+		for _, newCell := range newerLiving {
+			if newCell.Equals(&oldCell) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			changes = append(changes, ChangedLocation{Location: oldCell, Change: Died})
+		}
+	}
+
+	return changes
+} // }}}
 
 func (t *Analyzer) NumAnalyses() int {
 	return len(t.analyses)
 }
 
 func (t *Analyzer) Start() {
+	t.analyzing = true
 	updates := make(chan bool)
+	// t.Status = life.Active
 	t.stopAnalysis = t.Life.Start(updates, -1)
 
 	go func() {
@@ -173,6 +290,7 @@ func (t *Analyzer) Start() {
 			case <-updates:
 				nextGen := len(t.analyses)
 				gen := t.Life.Generation(nextGen)
+				fmt.Println("=======================================================")
 				fmt.Printf("Generation %d\n", gen.Num)
 				fmt.Println(t.Life)
 				t.analyze(gen.Living, gen.Num)
@@ -182,6 +300,7 @@ func (t *Analyzer) Start() {
 }
 
 func (t *Analyzer) Stop() {
+	t.analyzing = false
 	t.stopAnalysis()
 }
 
@@ -200,7 +319,7 @@ func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Locati
 	a := new(Analyzer)
 
 	var err error
-	a.Life, err = life.New("HTTP REQUEST",
+	a.Life, err = life.New("Analyzer",
 		dims,
 		life.NEIGHBORS_ALL,
 		pattern,
@@ -217,7 +336,10 @@ func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Locati
 	// Generate first analysis (for generation 0 / the seed)
 	a.analyze(a.Life.Seed, 0)
 
+	// Initialize the checksums map
+	a.analysesChecksums = make(map[string]int)
+
 	return a, nil
 }
 
-// vim: set foldmethod=marker:
+// vim: set foldmethod=marker nofoldenable:
