@@ -148,19 +148,19 @@ type Analyzer struct { // {{{
 }
 
 func (t *Analyzer) Analysis(generation int) *Analysis {
+	fmt.Printf("analyzed: Analysis(%d) : %d\n", generation, len(t.analyses))
 	if generation < 0 {
 		return nil
 	}
 
 	if generation >= len(t.analyses) {
-		/*
-			if t.analyzing {
-				// TODO: return an error
-			} else {
-					fmt.Println("Returning cycle analysis")
-					return t.cycle.Analysis(generation)
-			}
-		*/
+		if t.analyzing {
+			fmt.Println("analyzed: TODO: ERROR")
+			// TODO: return an error
+		} else {
+			fmt.Println("analyzed: TODO: Returning cycle analysis")
+			// return t.cycle.Analysis(generation)
+		}
 		return nil // TODO: remove
 	}
 	return &t.analyses[generation]
@@ -220,19 +220,21 @@ func (t *Analyzer) analyze(cells []life.Location, generation int) {
 	checksumStr := hex.EncodeToString(analysis.checksum)
 	fmt.Printf("Analyzing: %s\n", checksumStr)
 	if gen, exists := t.analysesChecksums[checksumStr]; exists {
-		fmt.Printf(">>>> Found cycle start: %d\n", gen)
-		// t.cycle, _ = newLifeStableCycle(t, gen)
-		// t.Stop()
-		// fmt.Println(">>>> Stopped analysis")
+		analysis.Status = life.Stable // TODO: remove
+		// fmt.Printf(">>>> Found cycle start: %d\n", gen)
+		t.cycle, _ = newLifeStableCycle(t, gen)
+		t.Stop()
+		fmt.Println("analyzed: Stopped analysis")
 	} else {
 		analysis.Status = life.Active
 		if t.analysesChecksums == nil {
 			t.analysesChecksums = make(map[string]int)
 		}
 		t.analysesChecksums[checksumStr] = len(t.analyses)
+		t.analyses = append(t.analyses, analysis)
 	}
 
-	t.analyses = append(t.analyses, analysis)
+	fmt.Printf("analyzed: Generation: %d  Status: %s\n", generation, analysis.Status)
 }
 
 func (t *Analyzer) Changes(olderGeneration int, newerGeneration int) []ChangedLocation { // {{{
