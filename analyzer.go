@@ -158,7 +158,8 @@ func (t *Analyzer) Analysis(generation int) *Analysis {
 			fmt.Println("analyzed: TODO: ERROR")
 			// TODO: return an error
 		} else {
-			fmt.Println("analyzed: TODO: Returning cycle analysis")
+			fmt.Printf("analyzed: TODO: Returning cycle analysis: %s\n",
+				t.cycle.Analysis(generation))
 			// return t.cycle.Analysis(generation)
 		}
 		return nil // TODO: remove
