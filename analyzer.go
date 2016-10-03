@@ -222,7 +222,7 @@ func (t *Analyzer) analyze(cells []life.Location, generation int) {
 	fmt.Printf("Analyzing: %s\n", checksumStr)
 	if gen, exists := t.analysesChecksums[checksumStr]; exists {
 		analysis.Status = life.Stable // TODO: remove
-		// fmt.Printf(">>>> Found cycle start: %d\n", gen)
+		fmt.Printf("analyzed: Found cycle start: %d\n", gen)
 		t.cycle, _ = newLifeStableCycle(t, gen)
 		t.Stop()
 		fmt.Println("analyzed: Stopped analysis")
