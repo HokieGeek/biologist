@@ -2,7 +2,7 @@ package biologist
 
 // import (
 // 	"bytes"
-// 	"github.com/hokiegeek/life/core"
+// 	"gitlab.com/hokiegeek/life/core"
 // )
 
 /*

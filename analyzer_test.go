@@ -1,7 +1,7 @@
 package biologist
 
 import (
-	"github.com/hokiegeek/life"
+	"gitlab.com/hokiegeek/life"
 	"testing"
 	"time"
 )

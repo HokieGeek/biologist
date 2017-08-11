@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
-	"github.com/hokiegeek/life"
+	"gitlab.com/hokiegeek/life"
 	"time"
 )
 
