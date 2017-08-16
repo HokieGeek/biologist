@@ -126,4 +126,28 @@ func TestBiologistAnalysisError(t *testing.T) {
 	}
 } // }}}
 
+func TestStatusString(t *testing.T) {
+	var status Status
+
+	status = Seeded
+	if len(status.String()) <= 0 {
+		t.Error("Unexpectedly retrieved empty string from Status object")
+	}
+
+	status = Active
+	if len(status.String()) <= 0 {
+		t.Error("Unexpectedly retrieved empty string from Status object")
+	}
+
+	status = Stable
+	if len(status.String()) <= 0 {
+		t.Error("Unexpectedly retrieved empty string from Status object")
+	}
+
+	status = Dead
+	if len(status.String()) <= 0 {
+		t.Error("Unexpectedly retrieved empty string from Status object")
+	}
+}
+
 // vim: set foldmethod=marker:
