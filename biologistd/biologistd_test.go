@@ -8,12 +8,12 @@ import (
 
 func TestNewCreateAnalysisResponse(t *testing.T) {
 	size := life.Dimensions{Width: 3, Height: 3}
-	analyzer, err := biologist.NewAnalyzer(size, life.Blinkers, life.ConwayTester())
+	biologist, err := biologist.NewBiologist(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
-		t.Fatalf("Unable to create analyzer: %s\n", err)
+		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
 
-	resp := NewCreateAnalysisResponse(analyzer)
+	resp := NewCreateAnalysisResponse(biologist)
 
 	if !resp.Dims.Equals(&size) {
 		t.Fatal("Expected size %s but received %s\n", size.String(), resp.Dims.String())
@@ -21,14 +21,14 @@ func TestNewCreateAnalysisResponse(t *testing.T) {
 }
 
 /*
-func TestNewAnalysisUpdateResponse(t *testing.T) {
+func TestNewBiologistUpdateResponse(t *testing.T) {
 	size := life.Dimensions{Width: 3, Height: 3}
-	analyzer, err := life.NewAnalyzer(size, life.Blinkers, life.ConwayTester())
+	biologist, err := life.NewBiologist(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
-		t.Fatalf("Unable to create analyzer: %s\n", err)
+		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
 
-	resp := NewAnalysisUpdateResponse(analyzer, 0, 1)
+	resp := NewBiologistUpdateResponse(biologist, 0, 1)
 }
 */
 

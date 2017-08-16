@@ -90,14 +90,14 @@ func (t *Analysis) String() string {
 // return h.Sum(nil)
 // }
 
-type Analyzer struct { // {{{
+type Biologist struct { // {{{
 	Id           []byte
 	Life         *life.Life
 	analyses     []Analysis // Each index is a generation
 	stopAnalysis func()
 }
 
-func (t *Analyzer) Analysis(generation int) *Analysis {
+func (t *Biologist) Analysis(generation int) *Analysis {
 	if generation < 0 || generation >= len(t.analyses) {
 		// TODO: maybe an error
 		return nil
@@ -105,7 +105,7 @@ func (t *Analyzer) Analysis(generation int) *Analysis {
 	return &t.analyses[generation]
 }
 
-func (t *Analyzer) analyze(cells []life.Location, generation int) {
+func (t *Biologist) analyze(cells []life.Location, generation int) {
 	var analysis Analysis
 
 	// Record the status
@@ -159,11 +159,11 @@ func (t *Analyzer) analyze(cells []life.Location, generation int) {
 	t.analyses = append(t.analyses, analysis)
 }
 
-func (t *Analyzer) NumAnalyses() int {
+func (t *Biologist) NumAnalyses() int {
 	return len(t.analyses)
 }
 
-func (t *Analyzer) Start() {
+func (t *Biologist) Start() {
 	updates := make(chan bool)
 	t.stopAnalysis = t.Life.Start(updates, -1)
 
@@ -181,11 +181,11 @@ func (t *Analyzer) Start() {
 	}()
 }
 
-func (t *Analyzer) Stop() {
+func (t *Biologist) Stop() {
 	t.stopAnalysis()
 }
 
-func (t *Analyzer) String() string {
+func (t *Biologist) String() string {
 	var buf bytes.Buffer
 
 	buf.WriteString(fmt.Sprintf("%x", t.Id))
@@ -195,9 +195,9 @@ func (t *Analyzer) String() string {
 	return buf.String()
 } // }}}
 
-func NewAnalyzer(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Analyzer, error) {
-	// fmt.Printf("NewAnalyzer: %v\n", pattern(dims, Location{X: 0, Y: 0}))
-	a := new(Analyzer)
+func NewBiologist(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
+	// fmt.Printf("NewBiologist: %v\n", pattern(dims, Location{X: 0, Y: 0}))
+	a := new(Biologist)
 
 	var err error
 	a.Life, err = life.New("HTTP REQUEST",

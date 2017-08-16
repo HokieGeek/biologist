@@ -7,7 +7,7 @@ package biologist
 
 /*
 type Manager struct {
-	analyzers map[string]*life.Analyzer
+	biologists map[string]*life.Biologist
 }
 
 func (t *Manager) stringId(id []byte) string {
@@ -15,26 +15,26 @@ func (t *Manager) stringId(id []byte) string {
 	return string(id[:n])
 }
 
-func (t *Manager) Analyzer(id []byte) *life.Analyzer {
+func (t *Manager) Biologist(id []byte) *life.biologist {
 	// TODO: validate the input
-	return t.analyzers[t.stringId(id)]
+	return t.biologists[t.stringId(id)]
 }
 
-func (t *Manager) Add(analyzer *life.Analyzer) {
+func (t *Manager) Add(biologist *life.Biologist) {
 	// TODO: validate the input
-	t.analyzers[t.stringId(analyzer.Id)] = analyzer
+	t.biologists[t.stringId(biologist.Id)] = biologist
 }
 
 func (t *Manager) Remove(id []byte) {
 	// TODO: validate the input
-	delete(t.analyzers, t.stringId(id))
+	delete(t.biologists, t.stringId(id))
 }
 
 func NewManager() *Manager {
 	m := new(Manager)
 
 	mgr := new(Manager)
-	mgr.analyzers = make(map[string]*life.Analyzer, 0)
+	mgr.biologists = make(map[string]*life.Biologist, 0)
 
 	return m
 }
