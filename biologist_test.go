@@ -15,7 +15,7 @@ func TestUniqueId(t *testing.T) { // {{{
 
 func TestBiologistCreate(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -27,7 +27,7 @@ func TestBiologistCreate(t *testing.T) { // {{{
 
 func TestBiologistCreateError(t *testing.T) {
 	size := life.Dimensions{Width: 0, Height: 0}
-	_, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	_, err := New(size, life.Blinkers, life.ConwayTester())
 	if err == nil {
 		t.Fatal("Unexpectedly successful at creating biologist with board of 0 size")
 	}
@@ -35,7 +35,7 @@ func TestBiologistCreateError(t *testing.T) {
 
 func TestBiologistString(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -47,7 +47,7 @@ func TestBiologistString(t *testing.T) { // {{{
 
 func TestBiologistStart(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -64,7 +64,7 @@ func TestBiologistStart(t *testing.T) { // {{{
 
 func TestBiologistStop(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -86,7 +86,7 @@ func TestBiologistStop(t *testing.T) { // {{{
 
 func TestBiologistAnalysis(t *testing.T) { // {{{
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -108,7 +108,7 @@ func TestBiologistAnalysis(t *testing.T) { // {{{
 
 func TestBiologistAnalysisError(t *testing.T) {
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}

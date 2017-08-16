@@ -8,7 +8,7 @@ import (
 
 func TestNewCreateAnalysisResponse(t *testing.T) {
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := biologist.NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := biologist.New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
@@ -23,7 +23,7 @@ func TestNewCreateAnalysisResponse(t *testing.T) {
 /*
 func TestNewBiologistUpdateResponse(t *testing.T) {
 	size := life.Dimensions{Width: 3, Height: 3}
-	biologist, err := life.NewBiologist(size, life.Blinkers, life.ConwayTester())
+	biologist, err := life.New(size, life.Blinkers, life.ConwayTester())
 	if err != nil {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}

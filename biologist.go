@@ -195,7 +195,7 @@ func (t *Biologist) String() string {
 	return buf.String()
 } // }}}
 
-func NewBiologist(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
+func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
 	// fmt.Printf("NewBiologist: %v\n", pattern(dims, Location{X: 0, Y: 0}))
 	a := new(Biologist)
 
