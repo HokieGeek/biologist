@@ -66,7 +66,7 @@ func (t *CreateAnalysisRequest) String() string {
 	return buf.String()
 }
 
-func CreateAnalysis(mgr *Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -211,7 +211,7 @@ func NewAnalysisUpdateResponse(biologist *biologist.Biologist, startingGeneratio
 	return r
 } // }}}
 
-func GetAnalysisStatus(mgr *Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -263,7 +263,7 @@ func (t *ControlRequest) String() string {
 	return buf.String()
 } // }}}
 
-func ControlAnalysis(mgr *Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func ControlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -291,39 +291,6 @@ func ControlAnalysis(mgr *Manager, log *log.Logger, w http.ResponseWriter, r *ht
 	}
 }
 
-/////////////////////////////////// MANAGER ///////////////////////////////////
-
-type Manager struct { // {{{
-	biologists map[string]*biologist.Biologist
-}
-
-func (t *Manager) stringId(id []byte) string {
-	return fmt.Sprintf("%x", id)
-}
-
-func (t *Manager) Biologist(id []byte) *biologist.Biologist {
-	// TODO: validate the input
-	return t.biologists[t.stringId(id)]
-}
-
-func (t *Manager) Add(biologist *biologist.Biologist) {
-	// TODO: validate the input
-	t.biologists[t.stringId(biologist.Id)] = biologist
-}
-
-func (t *Manager) Remove(id []byte) {
-	// TODO: validate the input
-	delete(t.biologists, t.stringId(id))
-}
-
-func NewManager() *Manager {
-	m := new(Manager)
-
-	m.biologists = make(map[string]*biologist.Biologist, 0)
-
-	return m
-} // }}}
-
 /////////////////////////////////// OTHER ///////////////////////////////////
 
 func postJson(w http.ResponseWriter, httpStatus int, send interface{}) {
@@ -347,7 +314,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mgr := NewManager()
+	mgr := biologist.NewManager()
 
 	mux.HandleFunc("/analyze",
 		func(w http.ResponseWriter, r *http.Request) {

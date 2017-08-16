@@ -1,26 +1,23 @@
 package biologist
 
-// import (
-// 	"bytes"
-// 	"gitlab.com/hokiegeek/life/core"
-// )
+import (
+	"fmt"
+)
 
-/*
-type Manager struct {
-	biologists map[string]*life.Biologist
+type Manager struct { // {{{
+	biologists map[string]*Biologist
 }
 
 func (t *Manager) stringId(id []byte) string {
-	n := bytes.IndexByte(id, 0)
-	return string(id[:n])
+	return fmt.Sprintf("%x", id)
 }
 
-func (t *Manager) Biologist(id []byte) *life.biologist {
+func (t *Manager) Biologist(id []byte) *Biologist {
 	// TODO: validate the input
 	return t.biologists[t.stringId(id)]
 }
 
-func (t *Manager) Add(biologist *life.Biologist) {
+func (t *Manager) Add(biologist *Biologist) {
 	// TODO: validate the input
 	t.biologists[t.stringId(biologist.Id)] = biologist
 }
@@ -33,11 +30,7 @@ func (t *Manager) Remove(id []byte) {
 func NewManager() *Manager {
 	m := new(Manager)
 
-	mgr := new(Manager)
-	mgr.biologists = make(map[string]*life.Biologist, 0)
+	m.biologists = make(map[string]*Biologist, 0)
 
 	return m
-}
-*/
-
-// vim: set foldmethod=marker:
+} // }}}
