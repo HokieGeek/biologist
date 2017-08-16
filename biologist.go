@@ -242,7 +242,7 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 	a := new(Biologist)
 
 	var err error
-	a.Life, err = life.New("HTTP REQUEST",
+	a.Life, err = life.New(
 		dims,
 		life.NEIGHBORS_ALL,
 		pattern,
