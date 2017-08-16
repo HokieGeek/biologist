@@ -17,6 +17,30 @@ func uniqueId() []byte { // {{{
 	return h.Sum(nil)
 } // }}}
 
+type Status int
+
+const (
+	Seeded Status = iota
+	Active
+	Stable
+	Dead
+)
+
+func (t Status) String() string {
+	switch t {
+	case Seeded:
+		return "Seeded"
+	case Active:
+		return "Active"
+	case Stable:
+		return "Stable"
+	case Dead:
+		return "Dead"
+	}
+
+	return "Unknown"
+}
+
 type ChangeType int // {{{
 
 const (
@@ -53,7 +77,7 @@ func (t *ChangedLocation) String() string {
 } // }}}
 
 type Analysis struct { // {{{
-	Status  life.Status
+	Status  Status
 	Living  []life.Location
 	Changes []ChangedLocation
 	// TODO: checksum []byte
@@ -105,27 +129,27 @@ func (t *Biologist) Analysis(generation int) *Analysis {
 	return &t.analyses[generation]
 }
 
-func (t *Biologist) analyze(cells []life.Location, generation int) {
+func (t *Biologist) analyze(generation *life.Generation) {
 	var analysis Analysis
 
 	// Record the status
 	// analysis.Status =
 
 	// Copy the living cells
-	analysis.Living = make([]life.Location, len(cells))
-	copy(analysis.Living, cells)
+	analysis.Living = make([]life.Location, len(generation.Living))
+	copy(analysis.Living, generation.Living)
 
 	// Initialize and start processing the living cells
 	analysis.Changes = make([]ChangedLocation, 0)
 
-	if generation <= 0 { // Special case to reduce code duplication
-		for _, loc := range cells {
+	if generation.Num <= 0 { // Special case to reduce code duplication
+		for _, loc := range generation.Living {
 			analysis.Changes = append(analysis.Changes, ChangedLocation{Location: loc, Change: Born})
 		}
 	} else {
 		// Add any new cells
-		previousLiving := t.analyses[generation-1].Living
-		for _, newCell := range cells {
+		previousLiving := t.analyses[generation.Num-1].Living
+		for _, newCell := range generation.Living {
 			found := false
 			for _, oldCell := range previousLiving {
 				if oldCell.Equals(&newCell) {
@@ -142,7 +166,7 @@ func (t *Biologist) analyze(cells []life.Location, generation int) {
 		// Add any cells which died
 		for _, oldCell := range previousLiving {
 			found := false
-			for _, newCell := range cells {
+			for _, newCell := range generation.Living {
 				if newCell.Equals(&oldCell) {
 					found = true
 					break
@@ -164,22 +188,40 @@ func (t *Biologist) NumAnalyses() int {
 }
 
 func (t *Biologist) Start() {
-	updates := make(chan bool)
-	t.stopAnalysis = t.Life.Start(updates, -1)
+	updates := make(chan *life.Generation)
+	t.stopAnalysis = t.Life.Start(updates)
 
 	go func() {
 		for {
 			select {
-			case <-updates:
-				nextGen := len(t.analyses)
-				gen := t.Life.Generation(nextGen)
+			case gen := <-updates:
+				// nextGen := len(t.analyses)
+				// gen := t.Life.Generation(nextGen)
 				fmt.Printf("Generation %d\n", gen.Num)
 				fmt.Println(t.Life)
-				t.analyze(gen.Living, gen.Num)
+				t.analyze(gen)
 			}
 		}
 	}()
 }
+
+// func (t *Biologist) StartOLD() {
+// 	updates := make(chan bool)
+// 	t.stopAnalysis = t.Life.Start(updates, -1)
+//
+// 	go func() {
+// 		for {
+// 			select {
+// 			case <-updates:
+// 				nextGen := len(t.analyses)
+// 				gen := t.Life.Generation(nextGen)
+// 				fmt.Printf("Generation %d\n", gen.Num)
+// 				fmt.Println(t.Life)
+// 				t.analyze(gen)
+// 			}
+// 		}
+// 	}()
+// }
 
 func (t *Biologist) Stop() {
 	t.stopAnalysis()
@@ -215,7 +257,7 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 	a.Id = uniqueId()
 
 	// Generate first analysis (for generation 0 / the seed)
-	a.analyze(a.Life.Seed, 0)
+	a.analyze(&life.Generation{Living: a.Life.Seed, Num: 0})
 
 	return a, nil
 }
