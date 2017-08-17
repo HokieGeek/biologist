@@ -77,10 +77,11 @@ func (t *ChangedLocation) String() string {
 } // }}}
 
 type Analysis struct { // {{{
-	Status  Status
-	Living  []life.Location
-	Changes []ChangedLocation
-	// TODO: checksum []byte
+	Status     Status
+	Generation int
+	Living     []life.Location
+	Changes    []ChangedLocation
+	// checksum []byte
 }
 
 func (t *Analysis) String() string {
@@ -104,21 +105,12 @@ func (t *Analysis) String() string {
 	return buf.String()
 } // }}}
 
-// type (t *Analysis) Checksum() [sha1.Size]byte {
-// var str bytes.Buffer
-// str.WriteString(strconv.Itoa(t.Generations))
-
-// h := sha1.New()
-// buf := make([]byte, sha1.Size)
-// h.Write(buf)
-// return h.Sum(nil)
-// }
-
 type Biologist struct { // {{{
-	Id           []byte
-	Life         *life.Life
-	analyses     []Analysis // Each index is a generation
-	stopAnalysis func()
+	Id                []byte
+	Life              *life.Life
+	analyses          []Analysis // Each index is a generation
+	stabilityDetector *stabilityDetector
+	stopAnalysis      func()
 }
 
 func (t *Biologist) Analysis(generation int) *Analysis {
@@ -129,58 +121,75 @@ func (t *Biologist) Analysis(generation int) *Analysis {
 	return &t.analyses[generation]
 }
 
-func (t *Biologist) analyze(generation *life.Generation) {
+func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving *[]life.Location) []ChangedLocation {
+	changes := make([]ChangedLocation, 0)
+
+	// Add any new cells
+	for _, newCell := range generation.Living {
+		found := false
+		for _, oldCell := range *previousLiving {
+			if oldCell.Equals(&newCell) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			changes = append(changes, ChangedLocation{Location: newCell, Change: Born})
+		}
+	}
+
+	// Add any cells which died
+	for _, oldCell := range *previousLiving {
+		found := false
+		for _, newCell := range generation.Living {
+			if newCell.Equals(&oldCell) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			changes = append(changes, ChangedLocation{Location: oldCell, Change: Died})
+		}
+	}
+
+	return changes
+}
+
+func (t *Biologist) analyze(generation *life.Generation) Status {
 	var analysis Analysis
 
-	// Record the status
-	// analysis.Status =
+	analysis.Generation = generation.Num
+
+	// Assume active status
+	analysis.Status = Active
 
 	// Copy the living cells
 	analysis.Living = make([]life.Location, len(generation.Living))
 	copy(analysis.Living, generation.Living)
 
-	// Initialize and start processing the living cells
-	analysis.Changes = make([]ChangedLocation, 0)
+	if len(analysis.Living) == 0 {
+		analysis.Status = Dead
+	}
 
+	// Initialize and start processing the living cells
 	if generation.Num <= 0 { // Special case to reduce code duplication
 		for _, loc := range generation.Living {
 			analysis.Changes = append(analysis.Changes, ChangedLocation{Location: loc, Change: Born})
 		}
 	} else {
-		// Add any new cells
-		previousLiving := t.analyses[generation.Num-1].Living
-		for _, newCell := range generation.Living {
-			found := false
-			for _, oldCell := range previousLiving {
-				if oldCell.Equals(&newCell) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				analysis.Changes = append(analysis.Changes, ChangedLocation{Location: newCell, Change: Born})
-			}
-		}
-
-		// Add any cells which died
-		for _, oldCell := range previousLiving {
-			found := false
-			for _, newCell := range generation.Living {
-				if newCell.Equals(&oldCell) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				analysis.Changes = append(analysis.Changes, ChangedLocation{Location: oldCell, Change: Died})
-			}
-		}
-
+		analysis.Changes = t.calculateChanges(generation, &t.analyses[generation.Num-1].Living)
 	}
 
+	// Detect when cycle goes stable
+	if t.stabilityDetector.analyze(&analysis) {
+		analysis.Status = Stable
+	}
+
+	// Add analysis to list
 	t.analyses = append(t.analyses, analysis)
+	return analysis.Status
 }
 
 func (t *Biologist) NumAnalyses() int {
@@ -195,33 +204,17 @@ func (t *Biologist) Start() {
 		for {
 			select {
 			case gen := <-updates:
-				// nextGen := len(t.analyses)
-				// gen := t.Life.Generation(nextGen)
 				fmt.Printf("Generation %d\n", gen.Num)
 				fmt.Println(t.Life)
-				t.analyze(gen)
+
+				// if status is !Active, then stop processing updates as there is no need
+				if t.analyze(gen) != Active {
+					t.Stop()
+				}
 			}
 		}
 	}()
 }
-
-// func (t *Biologist) StartOLD() {
-// 	updates := make(chan bool)
-// 	t.stopAnalysis = t.Life.Start(updates, -1)
-//
-// 	go func() {
-// 		for {
-// 			select {
-// 			case <-updates:
-// 				nextGen := len(t.analyses)
-// 				gen := t.Life.Generation(nextGen)
-// 				fmt.Printf("Generation %d\n", gen.Num)
-// 				fmt.Println(t.Life)
-// 				t.analyze(gen)
-// 			}
-// 		}
-// 	}()
-// }
 
 func (t *Biologist) Stop() {
 	t.stopAnalysis()
@@ -239,10 +232,10 @@ func (t *Biologist) String() string {
 
 func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
 	// fmt.Printf("NewBiologist: %v\n", pattern(dims, Location{X: 0, Y: 0}))
-	a := new(Biologist)
+	b := new(Biologist)
 
 	var err error
-	a.Life, err = life.New(
+	b.Life, err = life.New(
 		dims,
 		life.NEIGHBORS_ALL,
 		pattern,
@@ -254,12 +247,14 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 	}
 
 	// fmt.Println("Creating unique id")
-	a.Id = uniqueId()
+	b.Id = uniqueId()
+
+	b.stabilityDetector = newStabilityDetector()
 
 	// Generate first analysis (for generation 0 / the seed)
-	a.analyze(&life.Generation{Living: a.Life.Seed, Num: 0})
+	b.analyze(&life.Generation{Living: b.Life.Seed, Num: 0})
 
-	return a, nil
+	return b, nil
 }
 
 // vim: set foldmethod=marker:
