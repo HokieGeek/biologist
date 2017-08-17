@@ -58,8 +58,8 @@ func (s *stabilityDetector) analyze(analysis *Analysis) bool {
 
 	if gen, exists := s.analysesChecksums[checksumStr]; exists {
 		fmt.Printf("stabilityDetector: Found cycle start\n")
-		s.cycleStart = gen
-		s.cycleEnd = analysis.Generation - 1
+		s.CycleStart = gen
+		s.CycleEnd = analysis.Generation - 1
 		return true
 	} else {
 		s.analysesChecksums[checksumStr] = analysis.Generation
@@ -72,8 +72,8 @@ func newStabilityDetector() *stabilityDetector {
 	s := new(stabilityDetector)
 
 	s.analysesChecksums = make(map[string]int)
-	s.cycleStart = -1
-	s.cycleEnd = -1
+	s.CycleStart = -1
+	s.CycleEnd = -1
 
 	return s
 }
