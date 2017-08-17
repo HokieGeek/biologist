@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"gitlab.com/hokiegeek/life"
+	"log"
+	"os"
 	"time"
 )
 
@@ -80,7 +82,20 @@ type Analysis struct { // {{{
 	Status  Status
 	Living  []life.Location
 	Changes []ChangedLocation
-	// checksum []byte
+}
+
+func (t *Analysis) Clone() *Analysis {
+	shadow := new(Analysis)
+
+	shadow.Status = t.Status
+
+	shadow.Living = make([]life.Location, len(t.Living))
+	copy(shadow.Living, t.Living)
+
+	shadow.Changes = make([]ChangedLocation, len(t.Changes))
+	copy(shadow.Changes, t.Changes)
+
+	return shadow
 }
 
 func (t *Analysis) String() string {
@@ -105,6 +120,7 @@ func (t *Analysis) String() string {
 } // }}}
 
 type Biologist struct { // {{{
+	log               *log.Logger
 	Id                []byte
 	Life              *life.Life
 	analyses          []Analysis // Each index is a generation
@@ -115,9 +131,16 @@ type Biologist struct { // {{{
 func (t *Biologist) Analysis(generation int) *Analysis {
 	if generation >= 0 && generation < len(t.analyses) {
 		return &t.analyses[generation]
+	} else if t.stabilityDetector.Detected {
+		cycleGen := t.stabilityDetector.CycleStart + ((generation - t.stabilityDetector.CycleStart) % t.stabilityDetector.CycleLength)
+		// log.Printf("Received create request: %s\n", req.String())
+		t.log.Printf("Stable generation '%d' translated to cycle generation '%d'\n", generation, cycleGen)
+
+		stableAnalysis := t.Analysis(cycleGen).Clone()
+		stableAnalysis.Status = Stable
+
+		return stableAnalysis
 	}
-	// TODO: if generation is within cycle, then caculate which analysis fits
-	// TODO: maybe an error?
 	return nil
 }
 
@@ -177,16 +200,17 @@ func (t *Biologist) analyze(generation *life.Generation) Status {
 			analysis.Changes = append(analysis.Changes, ChangedLocation{Location: loc, Change: Born})
 		}
 	} else {
-		analysis.Changes = t.calculateChanges(generation, &t.analyses[generation.Num-1].Living)
+		analysis.Changes = t.calculateChanges(generation, &t.Analysis(generation.Num-1).Living)
 	}
 
 	// Detect when cycle goes stable
 	if t.stabilityDetector.analyze(&analysis, generation.Num) {
 		analysis.Status = Stable
+	} else {
+		// Add analysis to list
+		t.analyses = append(t.analyses, analysis)
 	}
 
-	// Add analysis to list
-	t.analyses = append(t.analyses, analysis)
 	return analysis.Status
 }
 
@@ -202,15 +226,11 @@ func (t *Biologist) Start() {
 		for {
 			select {
 			case gen := <-updates:
-				// fmt.Printf("Generation %d\n", gen.Num)
-				// fmt.Println(t.Life)
+				// t.log.Printf("Generation %d\n", gen.Num)
+				// t.log.Printf("\n%s\n", t.Life)
 
 				// if status is !Active, then stop processing updates as there is no need
 				if status := t.analyze(gen); status != Active {
-					// if status == Stable {
-					// 	fmt.Printf("")
-					// 	fmt.Println(t.Life)
-					// }
 					t.Stop()
 				}
 			}
@@ -233,8 +253,8 @@ func (t *Biologist) String() string {
 } // }}}
 
 func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
-	// fmt.Printf("NewBiologist: %v\n", pattern(dims, Location{X: 0, Y: 0}))
 	b := new(Biologist)
+	b.log = log.New(os.Stdout, "[biologist] ", 0)
 
 	var err error
 	b.Life, err = life.New(
@@ -244,11 +264,10 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 		rulesTester,
 		life.SimultaneousProcessor)
 	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
-	// fmt.Println("Creating unique id")
 	b.Id = uniqueId()
 
 	b.stabilityDetector = newStabilityDetector()

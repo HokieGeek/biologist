@@ -150,7 +150,7 @@ func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *Analysis
 	a.Generation = generation
 
 	a.Status = analysis.Status.String()
-	fmt.Printf("analyzed: AnalysisUpdate.Status: %s\n", a.Status)
+	// fmt.Printf("analyzed: AnalysisUpdate.Status: %s\n", a.Status)
 
 	a.Living = make([]life.Location, len(analysis.Living))
 	copy(a.Living, analysis.Living)
@@ -186,8 +186,12 @@ type AnalysisUpdateResponse struct { // {{{
 	// TODO: timestamp
 }
 
-func NewAnalysisUpdateResponse(biologist *biologist.Biologist, startingGeneration int, maxGenerations int) *AnalysisUpdateResponse {
+func NewAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, startingGeneration int, maxGenerations int) *AnalysisUpdateResponse {
 	// fmt.Printf("NewAnalysisUpdateResponse(%d, %d)\n", startingGeneration, maxGenerations)
+	if biologist == nil {
+		return nil
+	}
+
 	r := new(AnalysisUpdateResponse)
 
 	r.Id = biologist.Id
@@ -206,7 +210,7 @@ func NewAnalysisUpdateResponse(biologist *biologist.Biologist, startingGeneratio
 			r.Updates = append(r.Updates, *update)
 		}
 	}
-	fmt.Printf("[biologistd] Sending %d updates starting at generation %d\n", len(r.Updates), startingGeneration)
+	log.Printf("Sending %d updates starting at generation %d\n", len(r.Updates), startingGeneration)
 
 	return r
 } // }}}
@@ -229,8 +233,9 @@ func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseW
 	} else {
 		log.Printf("Received poll request: %s\n", req.String())
 
-		resp := NewAnalysisUpdateResponse(mgr.Biologist(req.Id), req.StartingGeneration, req.NumMaxGenerations)
-		postJson(w, http.StatusCreated, resp)
+		if resp := NewAnalysisUpdateResponse(log, mgr.Biologist(req.Id), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
+			postJson(w, http.StatusCreated, resp)
+		}
 	}
 }
 
@@ -307,8 +312,7 @@ func postJson(w http.ResponseWriter, httpStatus int, send interface{}) {
 }
 
 func main() {
-	// logger := log.New(os.Stdout, "", log.Lshortfile)
-	logger := log.New(os.Stdout, "", 0)
+	logger := log.New(os.Stdout, "[biologistd] ", 0)
 	portPtr := flag.Int("port", 8081, "Specify the port to use")
 	flag.Parse()
 
