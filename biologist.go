@@ -77,10 +77,9 @@ func (t *ChangedLocation) String() string {
 } // }}}
 
 type Analysis struct { // {{{
-	Status     Status
-	Generation int
-	Living     []life.Location
-	Changes    []ChangedLocation
+	Status  Status
+	Living  []life.Location
+	Changes []ChangedLocation
 	// checksum []byte
 }
 
@@ -114,11 +113,12 @@ type Biologist struct { // {{{
 }
 
 func (t *Biologist) Analysis(generation int) *Analysis {
-	if generation < 0 || generation >= len(t.analyses) {
-		// TODO: maybe an error
-		return nil
+	if generation >= 0 && generation < len(t.analyses) {
+		return &t.analyses[generation]
 	}
-	return &t.analyses[generation]
+	// TODO: if generation is within cycle, then caculate which analysis fits
+	// TODO: maybe an error?
+	return nil
 }
 
 func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving *[]life.Location) []ChangedLocation {
@@ -160,8 +160,6 @@ func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving
 func (t *Biologist) analyze(generation *life.Generation) Status {
 	var analysis Analysis
 
-	analysis.Generation = generation.Num
-
 	// Assume active status
 	analysis.Status = Active
 
@@ -183,7 +181,7 @@ func (t *Biologist) analyze(generation *life.Generation) Status {
 	}
 
 	// Detect when cycle goes stable
-	if t.stabilityDetector.analyze(&analysis) {
+	if t.stabilityDetector.analyze(&analysis, generation.Num) {
 		analysis.Status = Stable
 	}
 
@@ -204,11 +202,15 @@ func (t *Biologist) Start() {
 		for {
 			select {
 			case gen := <-updates:
-				fmt.Printf("Generation %d\n", gen.Num)
-				fmt.Println(t.Life)
+				// fmt.Printf("Generation %d\n", gen.Num)
+				// fmt.Println(t.Life)
 
 				// if status is !Active, then stop processing updates as there is no need
-				if t.analyze(gen) != Active {
+				if status := t.analyze(gen); status != Active {
+					// if status == Stable {
+					// 	fmt.Printf("")
+					// 	fmt.Println(t.Life)
+					// }
 					t.Stop()
 				}
 			}

@@ -51,18 +51,18 @@ type stabilityDetector struct { // {{{
 	CycleEnd          int
 }
 
-func (s *stabilityDetector) analyze(analysis *Analysis) bool {
+func (s *stabilityDetector) analyze(analysis *Analysis, generation int) bool {
 
 	checksum := checksum(analysis.Living)
 	checksumStr := hex.EncodeToString(checksum)
 
 	if gen, exists := s.analysesChecksums[checksumStr]; exists {
-		fmt.Printf("stabilityDetector: Found cycle start\n")
+		fmt.Printf("stabilityDetector: Found cycle start: %d\n", gen)
 		s.CycleStart = gen
-		s.CycleEnd = analysis.Generation - 1
+		s.CycleEnd = generation - 1
 		return true
 	} else {
-		s.analysesChecksums[checksumStr] = analysis.Generation
+		s.analysesChecksums[checksumStr] = generation
 	}
 
 	return false
