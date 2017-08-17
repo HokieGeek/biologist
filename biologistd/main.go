@@ -77,7 +77,7 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 	}
 
 	var req CreateAnalysisRequest
-	// fmt.Printf("REQ: %s\n", body)
+	fmt.Printf("REQ: %s\n", body)
 	if err := json.Unmarshal(body, &req); err != nil {
 		postJson(w, 422, err)
 	} else {
@@ -206,7 +206,7 @@ func NewAnalysisUpdateResponse(biologist *biologist.Biologist, startingGeneratio
 			r.Updates = append(r.Updates, *update)
 		}
 	}
-	fmt.Printf("[biologistd] Sending %d updates starting at generatio %d\n", len(r.Updates), startingGeneration)
+	fmt.Printf("[biologistd] Sending %d updates starting at generation %d\n", len(r.Updates), startingGeneration)
 
 	return r
 } // }}}
