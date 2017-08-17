@@ -19,16 +19,16 @@ func uniqueId() []byte { // {{{
 	return h.Sum(nil)
 } // }}}
 
-type Status int
+type status int
 
 const (
-	Seeded Status = iota
+	Seeded status = iota
 	Active
 	Stable
 	Dead
 )
 
-func (t Status) String() string {
+func (t status) String() string {
 	switch t {
 	case Seeded:
 		return "Seeded"
@@ -43,14 +43,14 @@ func (t Status) String() string {
 	return "Unknown"
 }
 
-type ChangeType int // {{{
+type changeType int // {{{
 
 const (
-	Born ChangeType = iota
+	Born changeType = iota
 	Died
 )
 
-func (t ChangeType) String() string {
+func (t changeType) String() string {
 	switch t {
 	case Born:
 		return "Born"
@@ -61,14 +61,14 @@ func (t ChangeType) String() string {
 	return "Unknown"
 } // }}}
 
-type ChangedLocation struct { // {{{
+type changedLocation struct { // {{{
 	life.Location
-	Change ChangeType
+	Change changeType
 	// PatternGroup ...
 	// Classificaiton ...
 }
 
-func (t *ChangedLocation) String() string {
+func (t *changedLocation) String() string {
 	var buf bytes.Buffer
 	buf.WriteString("{")
 	buf.WriteString(t.Change.String())
@@ -79,9 +79,9 @@ func (t *ChangedLocation) String() string {
 } // }}}
 
 type Analysis struct { // {{{
-	Status  Status
+	Status  status
 	Living  []life.Location
-	Changes []ChangedLocation
+	Changes []changedLocation
 }
 
 func (t *Analysis) Clone() *Analysis {
@@ -92,7 +92,7 @@ func (t *Analysis) Clone() *Analysis {
 	shadow.Living = make([]life.Location, len(t.Living))
 	copy(shadow.Living, t.Living)
 
-	shadow.Changes = make([]ChangedLocation, len(t.Changes))
+	shadow.Changes = make([]changedLocation, len(t.Changes))
 	copy(shadow.Changes, t.Changes)
 
 	return shadow
@@ -129,14 +129,18 @@ type Biologist struct { // {{{
 }
 
 func (t *Biologist) Analysis(generation int) *Analysis {
-	if generation >= 0 && generation < len(t.analyses) {
+	if generation < 0 {
+		return nil
+	}
+	if generation < len(t.analyses) {
 		return &t.analyses[generation]
 	} else if t.stabilityDetector.Detected {
 		cycleGen := t.stabilityDetector.CycleStart + ((generation - t.stabilityDetector.CycleStart) % t.stabilityDetector.CycleLength)
-		// log.Printf("Received create request: %s\n", req.String())
 		t.log.Printf("Stable generation '%d' translated to cycle generation '%d'\n", generation, cycleGen)
 
 		stableAnalysis := t.Analysis(cycleGen).Clone()
+		// stableAnalysis := new(Analysis)
+		// *stableAnalysis = *t.Analysis(cycleGen)
 		stableAnalysis.Status = Stable
 
 		return stableAnalysis
@@ -144,8 +148,8 @@ func (t *Biologist) Analysis(generation int) *Analysis {
 	return nil
 }
 
-func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving *[]life.Location) []ChangedLocation {
-	changes := make([]ChangedLocation, 0)
+func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving *[]life.Location) []changedLocation {
+	changes := make([]changedLocation, 0)
 
 	// Add any new cells
 	for _, newCell := range generation.Living {
@@ -158,7 +162,7 @@ func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving
 		}
 
 		if !found {
-			changes = append(changes, ChangedLocation{Location: newCell, Change: Born})
+			changes = append(changes, changedLocation{Location: newCell, Change: Born})
 		}
 	}
 
@@ -173,14 +177,14 @@ func (t *Biologist) calculateChanges(generation *life.Generation, previousLiving
 		}
 
 		if !found {
-			changes = append(changes, ChangedLocation{Location: oldCell, Change: Died})
+			changes = append(changes, changedLocation{Location: oldCell, Change: Died})
 		}
 	}
 
 	return changes
 }
 
-func (t *Biologist) analyze(generation *life.Generation) Status {
+func (t *Biologist) analyze(generation *life.Generation) status {
 	var analysis Analysis
 
 	// Assume active status
@@ -197,7 +201,7 @@ func (t *Biologist) analyze(generation *life.Generation) Status {
 	// Initialize and start processing the living cells
 	if generation.Num <= 0 { // Special case to reduce code duplication
 		for _, loc := range generation.Living {
-			analysis.Changes = append(analysis.Changes, ChangedLocation{Location: loc, Change: Born})
+			analysis.Changes = append(analysis.Changes, changedLocation{Location: loc, Change: Born})
 		}
 	} else {
 		analysis.Changes = t.calculateChanges(generation, &t.Analysis(generation.Num-1).Living)

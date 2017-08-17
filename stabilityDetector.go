@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
+	// "fmt"
+	"log"
+	"os"
 	"sort"
 	"strconv"
 
@@ -12,17 +14,6 @@ import (
 )
 
 func checksum(cells []life.Location) []byte {
-	/*
-		var str bytes.Buffer
-		fmt.Printf("checksum(")
-		for _, loc := range cells {
-			fmt.Printf(loc.String())
-			str.WriteString(strconv.Itoa(loc.X))
-			str.WriteString(strconv.Itoa(loc.Y))
-		}
-		fmt.Println()
-	*/
-
 	// fmt.Printf("checksum(")
 	locations := make(map[int]int)
 	var sorted []int
@@ -46,6 +37,7 @@ func checksum(cells []life.Location) []byte {
 }
 
 type stabilityDetector struct { // {{{
+	log               *log.Logger
 	analysesChecksums map[string]int
 	Detected          bool
 	CycleStart        int
@@ -61,7 +53,7 @@ func (s *stabilityDetector) analyze(analysis *Analysis, generation int) bool {
 		s.Detected = true
 		s.CycleStart = gen
 		s.CycleLength = generation - gen
-		fmt.Printf("stabilityDetector: Found cycle start: %d, len: %d\n", s.CycleStart, s.CycleLength)
+		s.log.Printf("Found cycle start: %d, len: %d\n", s.CycleStart, s.CycleLength)
 	} else {
 		s.analysesChecksums[checksumStr] = generation
 	}
@@ -71,6 +63,7 @@ func (s *stabilityDetector) analyze(analysis *Analysis, generation int) bool {
 
 func newStabilityDetector() *stabilityDetector {
 	s := new(stabilityDetector)
+	s.log = log.New(os.Stdout, "[stabilityDetector] ", 0)
 
 	s.analysesChecksums = make(map[string]int)
 	s.Detected = false
