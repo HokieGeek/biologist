@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
-	// "fmt"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -59,6 +59,21 @@ func (s *stabilityDetector) analyze(analysis *Analysis, generation int) bool {
 	}
 
 	return s.Detected
+}
+
+func (s *stabilityDetector) String() string {
+	var buf bytes.Buffer
+
+	buf.WriteString("num checksums: ")
+	buf.WriteString(fmt.Sprintf("%d\n", len(s.analysesChecksums)))
+	buf.WriteString("Detected: ")
+	buf.WriteString(fmt.Sprintf("%t\n", s.Detected))
+	buf.WriteString("Start: ")
+	buf.WriteString(fmt.Sprintf("%d\n", s.CycleStart))
+	buf.WriteString("Length: ")
+	buf.WriteString(fmt.Sprintf("%d\n", s.CycleLength))
+
+	return buf.String()
 }
 
 func newStabilityDetector() *stabilityDetector {

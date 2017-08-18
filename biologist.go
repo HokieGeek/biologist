@@ -123,7 +123,7 @@ type Biologist struct { // {{{
 	log               *log.Logger
 	Id                []byte
 	Life              *life.Life
-	analyses          []Analysis // Each index is a generation
+	analyses          *analysisList
 	stabilityDetector *stabilityDetector
 	stopAnalysis      func()
 }
@@ -132,15 +132,20 @@ func (t *Biologist) Analysis(generation int) *Analysis {
 	if generation < 0 {
 		return nil
 	}
-	if generation < len(t.analyses) {
-		return &t.analyses[generation]
+	if generation < t.analyses.Count() {
+		analysis := t.analyses.Get(generation)
+		return &analysis
 	} else if t.stabilityDetector.Detected {
 		cycleGen := t.stabilityDetector.CycleStart + ((generation - t.stabilityDetector.CycleStart) % t.stabilityDetector.CycleLength)
 		t.log.Printf("Stable generation '%d' translated to cycle generation '%d'\n", generation, cycleGen)
 
-		stableAnalysis := t.Analysis(cycleGen).Clone()
-		// stableAnalysis := new(Analysis)
-		// *stableAnalysis = *t.Analysis(cycleGen)
+		if cycleGen >= t.analyses.Count() {
+			t.log.Print(t.stabilityDetector.String())
+			t.log.Fatalf("I suck at math: %d >= %d\n", cycleGen, t.analyses.Count())
+		}
+
+		stableAnalysis := new(Analysis)
+		*stableAnalysis = t.analyses.Get(cycleGen)
 		stableAnalysis.Status = Stable
 
 		return stableAnalysis
@@ -208,18 +213,20 @@ func (t *Biologist) analyze(generation *life.Generation) status {
 	}
 
 	// Detect when cycle goes stable
-	if t.stabilityDetector.analyze(&analysis, generation.Num) {
+	if !t.stabilityDetector.Detected && t.stabilityDetector.analyze(&analysis, generation.Num) {
+		t.log.Printf("Found generation %d repeats stable cycle starting at %d\n", generation.Num, t.stabilityDetector.CycleStart)
 		analysis.Status = Stable
 	} else {
 		// Add analysis to list
-		t.analyses = append(t.analyses, analysis)
+		t.log.Printf("Adding analysis of generation %d\n", generation.Num)
+		t.analyses.Add(analysis)
 	}
 
 	return analysis.Status
 }
 
 func (t *Biologist) NumAnalyses() int {
-	return len(t.analyses)
+	return t.analyses.Count()
 }
 
 func (t *Biologist) Start() {
@@ -258,7 +265,8 @@ func (t *Biologist) String() string {
 
 func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
 	b := new(Biologist)
-	b.log = log.New(os.Stdout, "[biologist] ", 0)
+
+	b.analyses = newAnalysisList()
 
 	var err error
 	b.Life, err = life.New(
@@ -273,6 +281,7 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 	}
 
 	b.Id = uniqueId()
+	b.log = log.New(os.Stdout, fmt.Sprintf("[biologist-%x] ", b.Id), 0)
 
 	b.stabilityDetector = newStabilityDetector()
 
