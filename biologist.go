@@ -137,12 +137,7 @@ func (t *Biologist) Analysis(generation int) *Analysis {
 		return &analysis
 	} else if t.stabilityDetector.Detected {
 		cycleGen := t.stabilityDetector.CycleStart + ((generation - t.stabilityDetector.CycleStart) % t.stabilityDetector.CycleLength)
-		t.log.Printf("Stable generation '%d' translated to cycle generation '%d'\n", generation, cycleGen)
-
-		if cycleGen >= t.analyses.Count() {
-			t.log.Print(t.stabilityDetector.String())
-			t.log.Fatalf("I suck at math: %d >= %d\n", cycleGen, t.analyses.Count())
-		}
+		// t.log.Printf("Stable generation '%d' translated to cycle generation '%d'\n", generation, cycleGen)
 
 		stableAnalysis := new(Analysis)
 		*stableAnalysis = t.analyses.Get(cycleGen)
@@ -218,7 +213,7 @@ func (t *Biologist) analyze(generation *life.Generation) status {
 		analysis.Status = Stable
 	} else {
 		// Add analysis to list
-		t.log.Printf("Adding analysis of generation %d\n", generation.Num)
+		// t.log.Printf("Adding analysis of generation %d\n", generation.Num)
 		t.analyses.Add(analysis)
 	}
 

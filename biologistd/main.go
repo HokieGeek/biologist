@@ -77,20 +77,18 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 	}
 
 	var req CreateAnalysisRequest
-	fmt.Printf("REQ: %s\n", body)
 	if err := json.Unmarshal(body, &req); err != nil {
+		log.Printf("ERROR: Could not handle request: %s\n", err)
+		log.Printf("REQ: %s\n", body)
 		postJson(w, 422, err)
 	} else {
-		// FIXME: this should be sent to a logger
-		log.Printf("Received create request: %s\n", req.String())
+		// log.Printf("Received create request: %s\n", req.String())
 
 		// Determine the pattern to use for seeding the board
 		var patternFunc func(life.Dimensions, life.Location) []life.Location
 		switch req.Pattern {
 		case USER:
-			// fmt.Printf("Created USER pattern func: %v\n", req.Seed)
 			patternFunc = func(dims life.Dimensions, offset life.Location) []life.Location {
-				// fmt.Println("HERE I AM")
 				return req.Seed
 			}
 		case RANDOM:
@@ -108,13 +106,13 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 		}
 
 		// Create the biologist
-		// fmt.Printf("Creating new biologist with pattern: %v\n", patternFunc(req.Dims, life.Location{X: 0, Y: 0}))
+		// log.Printf("Creating new biologist with pattern: %v\n", patternFunc(req.Dims, life.Location{X: 0, Y: 0}))
 		biologist, err := biologist.New(req.Dims, patternFunc, life.ConwayTester())
 		if err != nil {
 			panic(err)
 		}
 		mgr.Add(biologist)
-		// fmt.Println(biologist)
+		// log.Println(biologist)
 
 		// Respond the request with the ID of the biologist
 		resp := NewCreateAnalysisResponse(biologist)
@@ -133,11 +131,9 @@ type AnalysisUpdate struct { // {{{
 	Generation int
 	Living     []life.Location
 	// Changes    []biologist.ChangedLocation
-	// Neighbors life.NeighborSelector
 }
 
 func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *AnalysisUpdate {
-	// fmt.Printf(" NewAnalysisUpdate(%d)\n", generation)
 	analysis := biologist.Analysis(generation)
 	if analysis == nil {
 		return nil
@@ -150,7 +146,6 @@ func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *Analysis
 	a.Generation = generation
 
 	a.Status = analysis.Status.String()
-	// fmt.Printf("analyzed: AnalysisUpdate.Status: %s\n", a.Status)
 
 	a.Living = make([]life.Location, len(analysis.Living))
 	copy(a.Living, analysis.Living)
@@ -229,10 +224,11 @@ func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseW
 
 	// fmt.Println(string(body))
 	if err := json.Unmarshal(body, &req); err != nil {
+		log.Printf("ERROR: Could not handle request: %s\n", err)
+		log.Printf("request: %s\n", req.String())
 		postJson(w, 422, err)
 	} else {
-		log.Printf("Received poll request: %s\n", req.String())
-
+		// log.Printf("Received poll request: %s\n", req.String())
 		if resp := NewAnalysisUpdateResponse(log, mgr.Biologist(req.Id), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
 			postJson(w, http.StatusCreated, resp)
 		}
