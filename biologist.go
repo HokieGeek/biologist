@@ -220,10 +220,6 @@ func (t *Biologist) analyze(generation *life.Generation) status {
 	return analysis.Status
 }
 
-func (t *Biologist) NumAnalyses() int {
-	return t.analyses.Count()
-}
-
 func (t *Biologist) Start() {
 	updates := make(chan *life.Generation)
 	t.stopAnalysis = t.Life.Start(updates)
@@ -258,16 +254,14 @@ func (t *Biologist) String() string {
 	return buf.String()
 } // }}}
 
-func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
+func New(dims life.Dimensions, seed func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
 	b := new(Biologist)
-
-	b.analyses = newAnalysisList()
 
 	var err error
 	b.Life, err = life.New(
 		dims,
-		life.NEIGHBORS_ALL,
-		pattern,
+		life.NeighborsAll,
+		seed,
 		rulesTester,
 		life.SimultaneousProcessor)
 	if err != nil {
@@ -278,6 +272,7 @@ func New(dims life.Dimensions, pattern func(life.Dimensions, life.Location) []li
 	b.Id = uniqueId()
 	b.log = log.New(os.Stdout, fmt.Sprintf("[biologist-%x] ", b.Id), 0)
 
+	b.analyses = newAnalysisList()
 	b.stabilityDetector = newStabilityDetector()
 
 	// Generate first analysis (for generation 0 / the seed)

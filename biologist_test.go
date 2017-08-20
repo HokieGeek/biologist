@@ -57,7 +57,7 @@ func TestBiologistStart(t *testing.T) { // {{{
 	time.Sleep(waitTime)
 	biologist.Stop()
 
-	if biologist.NumAnalyses() <= 0 {
+	if biologist.analyses.Count() <= 0 {
 		t.Fatalf("No analyses found after %s of running\n", waitTime.String())
 	}
 } // }}}
@@ -74,11 +74,11 @@ func TestBiologistStop(t *testing.T) { // {{{
 	biologist.Stop()
 
 	time.Sleep(time.Millisecond * 1)
-	stoppedCount := biologist.NumAnalyses()
+	stoppedCount := biologist.analyses.Count()
 
 	time.Sleep(time.Millisecond * 10)
 
-	waitedCount := biologist.NumAnalyses()
+	waitedCount := biologist.analyses.Count()
 	if stoppedCount != waitedCount {
 		t.Fatalf("Analyses increased after stopped. Expected %d and got %d\n", stoppedCount, waitedCount)
 	}
@@ -99,7 +99,7 @@ func TestBiologistAnalysis(t *testing.T) { // {{{
 		t.Fatal("Could not retrieve seed")
 	}
 
-	for i := biologist.NumAnalyses() - 1; i >= 0; i-- {
+	for i := biologist.analyses.Count() - 1; i >= 0; i-- {
 		if biologist.Analysis(i) == nil {
 			t.Fatalf("Analysis for generation %d is nil\n", i)
 		}
@@ -122,7 +122,7 @@ func TestBiologistAnalysisError(t *testing.T) {
 	}
 
 	// TODO: this test needs to take a Stable culture into account
-	// if biologist.Analysis(biologist.NumAnalyses()) != nil {
+	// if biologist.Analysis(biologist.analyses.Count()) != nil {
 	// 	t.Fatal("Biologist returned to me analysis at generation greater than the number of generations analyzed")
 	// }
 } // }}}
