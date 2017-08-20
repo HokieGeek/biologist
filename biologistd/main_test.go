@@ -13,10 +13,10 @@ func TestNewCreateAnalysisResponse(t *testing.T) {
 		t.Fatalf("Unable to create biologist: %s\n", err)
 	}
 
-	resp := NewCreateAnalysisResponse(biologist)
+	resp := newCreateAnalysisResponse(biologist)
 
 	if !resp.Dims.Equals(&size) {
-		t.Fatal("Expected size %s but received %s\n", size.String(), resp.Dims.String())
+		t.Fatalf("Expected size %s but received %s\n", size.String(), resp.Dims.String())
 	}
 }
 

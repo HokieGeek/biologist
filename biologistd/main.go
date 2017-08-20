@@ -5,57 +5,50 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"gitlab.com/hokiegeek/biologist"
-	"gitlab.com/hokiegeek/life"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+
+	"gitlab.com/hokiegeek/biologist"
+	"gitlab.com/hokiegeek/life"
 )
 
 /////////////////////////////////// CREATE ANALYSIS ///////////////////////////////////
 
+// CreateAnalysisResponse encapsulates the HTTP response for a CreateAnalysisRequest
 type CreateAnalysisResponse struct { // {{{
 	ID   []byte
 	Dims life.Dimensions
-	// Rule string
-	// Neighbors  life.NeighborsSelector
 }
 
-func NewCreateAnalysisResponse(biologist *biologist.Biologist) *CreateAnalysisResponse {
+// newCreateAnalysisResponse creates a CreateAnalysisResponse object for the given biologist
+func newCreateAnalysisResponse(biologist *biologist.Biologist) *CreateAnalysisResponse {
 	resp := new(CreateAnalysisResponse)
 
 	resp.ID = biologist.ID
 	resp.Dims = biologist.Life.Dimensions()
-	// resp.Rule = biologist.Generation()
 
 	return resp
 } // }}}
 
-type PatternType int // {{{
+type patternType int // {{{
 
 const (
-	USER PatternType = iota
+	// USER specifies that the pattern was passed in by the user in the request
+	USER patternType = iota
+	// RANDOM specifies that a random pattern should be generated
 	RANDOM
-	BLINKERS
-	TOADS
-	BEACONS
-	PULSARS
-	GLIDERS
-	BLOCKS
-	BEEHIVES
-	LOAVES
-	BOATS
 ) // }}}
 
+// CreateAnalysisRequest encapsulates the needed initial data for starting a life simulation
 type CreateAnalysisRequest struct { // {{{
 	Dims    life.Dimensions
-	Pattern PatternType
+	pattern patternType
 	Seed    []life.Location
 	// life.Rules
-	// Processor
 }
 
 func (t *CreateAnalysisRequest) String() string {
@@ -66,7 +59,7 @@ func (t *CreateAnalysisRequest) String() string {
 	return buf.String()
 }
 
-func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func createAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -80,13 +73,13 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 	if err := json.Unmarshal(body, &req); err != nil {
 		log.Printf("ERROR: Could not handle request: %s\n", err)
 		log.Printf("REQ: %s\n", body)
-		postJson(w, 422, err)
+		postJSON(w, 422, err)
 	} else {
 		// log.Printf("Received create request: %s\n", req.String())
 
 		// Determine the pattern to use for seeding the board
 		var patternFunc func(life.Dimensions, life.Location) []life.Location
-		switch req.Pattern {
+		switch req.pattern {
 		case USER:
 			patternFunc = func(dims life.Dimensions, offset life.Location) []life.Location {
 				return req.Seed
@@ -95,14 +88,6 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 			patternFunc = func(dims life.Dimensions, offset life.Location) []life.Location {
 				return life.Random(dims, offset, 35)
 			}
-		case BLINKERS:
-			patternFunc = life.Blinkers
-		case PULSARS:
-			patternFunc = life.Pulsar
-		case GLIDERS:
-			patternFunc = life.Gliders
-		case BLOCKS:
-			patternFunc = life.Blocks
 		}
 
 		// Create the biologist
@@ -115,25 +100,25 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 		// log.Println(biologist)
 
 		// Respond the request with the ID of the biologist
-		resp := NewCreateAnalysisResponse(biologist)
+		resp := newCreateAnalysisResponse(biologist)
 
-		postJson(w, http.StatusCreated, resp)
+		postJSON(w, http.StatusCreated, resp)
 	}
 } // }}}
 
 /////////////////////////////////// UPDATE ANALYSIS ///////////////////////////////////
 
+// AnalysisUpdate encapsulates the analysis of a given generation
 type AnalysisUpdate struct { // {{{
-	ID   []byte
-	Dims life.Dimensions
-	// Status     biologist.Status
+	ID         []byte
+	Dims       life.Dimensions
 	Status     string
 	Generation int
 	Living     []life.Location
 	// Changes    []biologist.ChangedLocation
 }
 
-func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *AnalysisUpdate {
+func newAnalysisUpdate(biologist *biologist.Biologist, generation int) *AnalysisUpdate {
 	analysis := biologist.Analysis(generation)
 	if analysis == nil {
 		return nil
@@ -156,6 +141,7 @@ func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *Analysis
 	return a
 } // }}}
 
+// AnalysisUpdateRequest encapsulates required parameters to retrieve the analysis of a range of generations
 type AnalysisUpdateRequest struct { // {{{
 	ID                 []byte
 	StartingGeneration int
@@ -175,13 +161,13 @@ func (t *AnalysisUpdateRequest) String() string {
 	return buf.String()
 } // }}}
 
+// AnalysisUpdateResponse encapsulates the requested analysis updates
 type AnalysisUpdateResponse struct { // {{{
 	ID      []byte
 	Updates []AnalysisUpdate
-	// TODO: timestamp
 }
 
-func NewAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, startingGeneration int, maxGenerations int) *AnalysisUpdateResponse {
+func newAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, startingGeneration int, maxGenerations int) *AnalysisUpdateResponse {
 	// fmt.Printf("NewAnalysisUpdateResponse(%d, %d)\n", startingGeneration, maxGenerations)
 	if biologist == nil {
 		return nil
@@ -197,7 +183,7 @@ func NewAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, 
 	endGen := startingGeneration + maxGenerations
 	for i := startingGeneration; i < endGen; i++ {
 		// fmt.Printf(">> Generation %d living <<\n", i)
-		update := NewAnalysisUpdate(biologist, i)
+		update := newAnalysisUpdate(biologist, i)
 		// for j, change := range update.Changes {
 		// fmt.Printf("  Change[%d] = %s\n", j, change.String())
 		// }
@@ -210,7 +196,7 @@ func NewAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, 
 	return r
 } // }}}
 
-func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func getAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -226,24 +212,28 @@ func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseW
 	if err := json.Unmarshal(body, &req); err != nil {
 		log.Printf("ERROR: Could not handle request: %s\n", err)
 		log.Printf("request: %s\n", req.String())
-		postJson(w, 422, err)
+		postJSON(w, 422, err)
 	} else {
 		// log.Printf("Received poll request: %s\n", req.String())
-		if resp := NewAnalysisUpdateResponse(log, mgr.Biologist(req.ID), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
-			postJson(w, http.StatusCreated, resp)
+		if resp := newAnalysisUpdateResponse(log, mgr.Biologist(req.ID), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
+			postJSON(w, http.StatusCreated, resp)
 		}
 	}
 }
 
 /////////////////////////////////// CONTROL ANALYSIS ///////////////////////////////////
 
+// ControlOrder enumerates the available commands to control a running simulation/analysis
 type ControlOrder int // {{{
 
 const (
+	// Start will begin the simulation and subsequent analysis
 	Start ControlOrder = 0
-	Stop  ControlOrder = 1
+	// Stop will stop the simulation (and analysis)
+	Stop ControlOrder = 1
 )
 
+// ControlRequest encapsulates the HTTP request for controlling a simulation
 type ControlRequest struct {
 	ID    []byte
 	Order ControlOrder
@@ -264,7 +254,7 @@ func (t *ControlRequest) String() string {
 	return buf.String()
 } // }}}
 
-func ControlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
+func controlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -277,7 +267,7 @@ func ControlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWri
 	var req ControlRequest
 
 	if err := json.Unmarshal(body, &req); err != nil {
-		postJson(w, 422, err)
+		postJSON(w, 422, err)
 	} else {
 		log.Printf("Received control request: %s\n", req.String())
 
@@ -294,7 +284,7 @@ func ControlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWri
 
 /////////////////////////////////// OTHER ///////////////////////////////////
 
-func postJson(w http.ResponseWriter, httpStatus int, send interface{}) {
+func postJSON(w http.ResponseWriter, httpStatus int, send interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -318,15 +308,15 @@ func main() {
 
 	mux.HandleFunc("/analyze",
 		func(w http.ResponseWriter, r *http.Request) {
-			CreateAnalysis(mgr, logger, w, r)
+			createAnalysis(mgr, logger, w, r)
 		})
 	mux.HandleFunc("/poll",
 		func(w http.ResponseWriter, r *http.Request) {
-			GetAnalysisStatus(mgr, logger, w, r)
+			getAnalysisStatus(mgr, logger, w, r)
 		})
 	mux.HandleFunc("/control",
 		func(w http.ResponseWriter, r *http.Request) {
-			ControlAnalysis(mgr, logger, w, r)
+			controlAnalysis(mgr, logger, w, r)
 		})
 
 	http.ListenAndServe(fmt.Sprintf(":%d", *portPtr), mux)

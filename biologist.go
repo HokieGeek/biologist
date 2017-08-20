@@ -5,10 +5,11 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
-	"gitlab.com/hokiegeek/life"
 	"log"
 	"os"
 	"time"
+
+	"gitlab.com/hokiegeek/life"
 )
 
 func uniqueID() []byte { // {{{
@@ -70,8 +71,6 @@ func (t changeType) String() string {
 type changedLocation struct { // {{{
 	life.Location
 	Change changeType
-	// PatternGroup ...
-	// Classificaiton ...
 }
 
 func (t *changedLocation) String() string {
