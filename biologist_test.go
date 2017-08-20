@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func TestUniqueId(t *testing.T) { // {{{
-	id := uniqueId()
+func TestUniqueID(t *testing.T) { // {{{
+	id := uniqueID()
 	if id == nil {
 		t.Error("Unexpectedly got a nil unique id")
 	}

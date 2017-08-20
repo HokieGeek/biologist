@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func uniqueId() []byte { // {{{
+func uniqueID() []byte { // {{{
 	h := sha1.New()
 	buf := make([]byte, sha1.Size)
 	binary.PutVarint(buf, time.Now().UnixNano())
@@ -22,9 +22,13 @@ func uniqueId() []byte { // {{{
 type status int
 
 const (
+	// Seeded status means that a seed has been applied but the simulation has not started
 	Seeded status = iota
+	// Active means the simulation is running and is actively evolving
 	Active
+	// Stable applies to a simulation that has entered a cycle where all that are left are still life and oscillators
 	Stable
+	// Dead applies to a simulation where all of the living cells were wiped outP
 	Dead
 )
 
@@ -46,7 +50,9 @@ func (t status) String() string {
 type changeType int // {{{
 
 const (
+	// Born applies to a cell who was born in the current generation
 	Born changeType = iota
+	// Died applies to a cell which died in the current generation
 	Died
 )
 
@@ -78,12 +84,14 @@ func (t *changedLocation) String() string {
 	return buf.String()
 } // }}}
 
+// Analysis provides the state of each analyzed generation
 type Analysis struct { // {{{
 	Status  status
 	Living  []life.Location
 	Changes []changedLocation
 }
 
+// Clone creates a deep copy of the indicated Analysis
 func (t *Analysis) Clone() *Analysis {
 	shadow := new(Analysis)
 
@@ -119,15 +127,17 @@ func (t *Analysis) String() string {
 	return buf.String()
 } // }}}
 
+// Biologist runs a Life simulation and analysis each generation for emerging patterns
 type Biologist struct { // {{{
 	log               *log.Logger
-	Id                []byte
+	ID                []byte
 	Life              *life.Life
 	analyses          *analysisList
 	stabilityDetector *stabilityDetector
 	stopAnalysis      func()
 }
 
+// Analysis returns the completed analysis of the indicated generation
 func (t *Biologist) Analysis(generation int) *Analysis {
 	if generation < 0 {
 		return nil
@@ -220,6 +230,7 @@ func (t *Biologist) analyze(generation *life.Generation) status {
 	return analysis.Status
 }
 
+// Start beings the Life simulation and analyzes each generation
 func (t *Biologist) Start() {
 	updates := make(chan *life.Generation)
 	t.stopAnalysis = t.Life.Start(updates)
@@ -240,6 +251,7 @@ func (t *Biologist) Start() {
 	}()
 }
 
+// Stop ends the analysis and simulation
 func (t *Biologist) Stop() {
 	t.stopAnalysis()
 }
@@ -247,13 +259,14 @@ func (t *Biologist) Stop() {
 func (t *Biologist) String() string {
 	var buf bytes.Buffer
 
-	buf.WriteString(fmt.Sprintf("%x", t.Id))
+	buf.WriteString(fmt.Sprintf("%x", t.ID))
 	buf.WriteString("\n")
 	buf.WriteString(t.Life.String())
 
 	return buf.String()
 } // }}}
 
+// New creates a new biologist with the indicated life board dimension, seed and ruleset
 func New(dims life.Dimensions, seed func(life.Dimensions, life.Location) []life.Location, rulesTester func(int, bool) bool) (*Biologist, error) {
 	b := new(Biologist)
 
@@ -269,8 +282,8 @@ func New(dims life.Dimensions, seed func(life.Dimensions, life.Location) []life.
 		return nil, err
 	}
 
-	b.Id = uniqueId()
-	b.log = log.New(os.Stdout, fmt.Sprintf("[biologist-%x] ", b.Id), 0)
+	b.ID = uniqueID()
+	b.log = log.New(os.Stdout, fmt.Sprintf("[biologist-%x] ", b.ID), 0)
 
 	b.analyses = newAnalysisList()
 	b.stabilityDetector = newStabilityDetector()

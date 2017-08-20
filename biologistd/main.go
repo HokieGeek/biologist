@@ -18,7 +18,7 @@ import (
 /////////////////////////////////// CREATE ANALYSIS ///////////////////////////////////
 
 type CreateAnalysisResponse struct { // {{{
-	Id   []byte
+	ID   []byte
 	Dims life.Dimensions
 	// Rule string
 	// Neighbors  life.NeighborsSelector
@@ -27,7 +27,7 @@ type CreateAnalysisResponse struct { // {{{
 func NewCreateAnalysisResponse(biologist *biologist.Biologist) *CreateAnalysisResponse {
 	resp := new(CreateAnalysisResponse)
 
-	resp.Id = biologist.Id
+	resp.ID = biologist.ID
 	resp.Dims = biologist.Life.Dimensions()
 	// resp.Rule = biologist.Generation()
 
@@ -124,7 +124,7 @@ func CreateAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWrit
 /////////////////////////////////// UPDATE ANALYSIS ///////////////////////////////////
 
 type AnalysisUpdate struct { // {{{
-	Id   []byte
+	ID   []byte
 	Dims life.Dimensions
 	// Status     biologist.Status
 	Status     string
@@ -141,7 +141,7 @@ func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *Analysis
 
 	a := new(AnalysisUpdate)
 
-	a.Id = biologist.Id
+	a.ID = biologist.ID
 	a.Dims = biologist.Life.Dimensions()
 	a.Generation = generation
 
@@ -157,7 +157,7 @@ func NewAnalysisUpdate(biologist *biologist.Biologist, generation int) *Analysis
 } // }}}
 
 type AnalysisUpdateRequest struct { // {{{
-	Id                 []byte
+	ID                 []byte
 	StartingGeneration int
 	NumMaxGenerations  int
 }
@@ -165,8 +165,8 @@ type AnalysisUpdateRequest struct { // {{{
 func (t *AnalysisUpdateRequest) String() string {
 	var buf bytes.Buffer
 
-	buf.WriteString("Id: ")
-	buf.WriteString(fmt.Sprintf("%x", t.Id))
+	buf.WriteString("ID: ")
+	buf.WriteString(fmt.Sprintf("%x", t.ID))
 	buf.WriteString("\nStarting Generation: ")
 	buf.WriteString(strconv.Itoa(t.StartingGeneration))
 	buf.WriteString("\nMax: ")
@@ -176,7 +176,7 @@ func (t *AnalysisUpdateRequest) String() string {
 } // }}}
 
 type AnalysisUpdateResponse struct { // {{{
-	Id      []byte
+	ID      []byte
 	Updates []AnalysisUpdate
 	// TODO: timestamp
 }
@@ -189,7 +189,7 @@ func NewAnalysisUpdateResponse(log *log.Logger, biologist *biologist.Biologist, 
 
 	r := new(AnalysisUpdateResponse)
 
-	r.Id = biologist.Id
+	r.ID = biologist.ID
 
 	r.Updates = make([]AnalysisUpdate, 0)
 
@@ -229,7 +229,7 @@ func GetAnalysisStatus(mgr *biologist.Manager, log *log.Logger, w http.ResponseW
 		postJson(w, 422, err)
 	} else {
 		// log.Printf("Received poll request: %s\n", req.String())
-		if resp := NewAnalysisUpdateResponse(log, mgr.Biologist(req.Id), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
+		if resp := NewAnalysisUpdateResponse(log, mgr.Biologist(req.ID), req.StartingGeneration, req.NumMaxGenerations); resp != nil {
 			postJson(w, http.StatusCreated, resp)
 		}
 	}
@@ -245,14 +245,14 @@ const (
 )
 
 type ControlRequest struct {
-	Id    []byte
+	ID    []byte
 	Order ControlOrder
 }
 
 func (t *ControlRequest) String() string {
 	var buf bytes.Buffer
-	buf.WriteString("Id: ")
-	buf.WriteString(fmt.Sprintf("%x", t.Id))
+	buf.WriteString("ID: ")
+	buf.WriteString(fmt.Sprintf("%x", t.ID))
 	buf.WriteString("\nOrder: ")
 	switch t.Order {
 	case 0:
@@ -281,7 +281,7 @@ func ControlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWri
 	} else {
 		log.Printf("Received control request: %s\n", req.String())
 
-		biologist := mgr.Biologist(req.Id)
+		biologist := mgr.Biologist(req.ID)
 
 		switch req.Order {
 		case Start:
