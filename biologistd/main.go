@@ -231,6 +231,8 @@ const (
 	Start ControlOrder = 0
 	// Stop will stop the simulation (and analysis)
 	Stop ControlOrder = 1
+	// Remove will get rid of the simulation completely
+	Remove ControlOrder = 2
 )
 
 // ControlRequest encapsulates the HTTP request for controlling a simulation
@@ -249,6 +251,8 @@ func (t *ControlRequest) String() string {
 		buf.WriteString("Start")
 	case 1:
 		buf.WriteString("Stop")
+	case 2:
+		buf.WriteString("Remove")
 	}
 
 	return buf.String()
@@ -267,6 +271,8 @@ func controlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWri
 	var req ControlRequest
 
 	if err := json.Unmarshal(body, &req); err != nil {
+		log.Printf("ERROR: Could not handle request: %s\n", err)
+		log.Printf("request: %s\n", req.String())
 		postJSON(w, 422, err)
 	} else {
 		log.Printf("Received control request: %s\n", req.String())
@@ -278,6 +284,9 @@ func controlAnalysis(mgr *biologist.Manager, log *log.Logger, w http.ResponseWri
 			biologist.Start()
 		case Stop:
 			biologist.Stop()
+		case Remove:
+			biologist.Stop()
+			mgr.Remove(req.ID)
 		}
 	}
 }
